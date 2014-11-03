@@ -1,0 +1,9 @@
+name = "Manage Product"
+description = "Export and Import Product ."
+core = 7.x
+dependencies[] = taxonomy
+package = 'custom'
+version = "7.x-5.10"
+core = "7.x"
+datestamp = "1329924048"
+

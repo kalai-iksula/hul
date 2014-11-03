@@ -1,0 +1,15 @@
+<php
+  
+Node access hook link
+http://drupalcontrib.org/api/drupal/
+drupal%21modules%21node%21node.api.php/function/hook_node_access/7
+
+Return value
+
+NODE_ACCESS_ALLOW: if the operation is to be allowed.
+NODE_ACCESS_DENY: if the operation is to be denied.
+NODE_ACCESS_IGNORE: to not affect this operation at all.
+
+Node access user reference modules
+http://packetstormsecurity.com/files/121825/
+Drupal-Node-Access-User-Reference-6.x-7.x-Access-Bypass.html

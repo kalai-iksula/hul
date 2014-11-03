@@ -1,0 +1,6 @@
+<?php
+function first_help($path, $args) {
+  if ($path == 'admin/help#first') {
+    return t('To use this module, go to the block page and turn on the membercount block.');
+  }
+}

@@ -1,0 +1,27 @@
+name = "WPC CSV import/export"
+description = "Export and Import Hul WPC ."
+core = 7.x
+dependencies[] = taxonomy
+package = 'custom'
+project ='wpc'
+version = '7.x-5.x-dev'
+files[] = wpc_csv.install
+files[] = wpc_csv.module
+files[] = wpc_csv.api.inc
+files[] = wpc_csv.vocabulary.api.inc
+files[] = wpc_csv.term.api.inc
+files[] = wpc_csv.result.inc
+files[] = import/wpc_csv.import.admin.inc
+files[] = import/wpc_csv.import.api.inc
+files[] = import/wpc_csv.import.line.api.inc
+files[] = import/wpc_csv.import.result.inc
+files[] = export/wpc_csv.export.admin.inc
+files[] = export/wpc_csv.export.api.inc
+files[] = export/wpc_csv.export.result.inc
+
+; Information added by drupal.org packaging script on 2012-02-22
+version = "7.x-5.10"
+core = "7.x"
+project = "WPC"
+datestamp = "1329924048"
+

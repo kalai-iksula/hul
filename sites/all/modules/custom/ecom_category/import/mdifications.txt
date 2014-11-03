@@ -1,0 +1,105 @@
+ 139.    '#states' => array(
+        'visible' => array(
+          ':input[name=import_format]' => array('value' => $key),
+        ),
+      ),
+
+
+237. '#states'        => array(
+      'visible' => array(
+        ':input[name=import_format]' => array('value' => TAXONOMY_CSV_FORMAT_STRUCTURE),
+      ),
+    ),
+    
+ 262.  '#states'        => array(
+      'visible' => array(
+        ':input[name=import_format]' => array('value' => TAXONOMY_CSV_FORMAT_FIELDS),
+      ),
+    )  
+    
+    
+ 278. '#states'        => array(
+      'visible' => array(
+        ':input[name=import_format]' => array('value' => TAXONOMY_CSV_FORMAT_TRANSLATE),
+      ),
+    )
+    
+    
+ 294. '#states'        => array(
+      'visible' => array(
+        ':input[name=import_format]' => array('value' => TAXONOMY_CSV_FORMAT_TRANSLATE),
+      ),
+    )   
+
+
+529.   '#states'        => array(
+      'invisible' => array(
+        ':input[name=source_choice]' => array('value' => 'text'),
+        '#access' => FALSE,
+
+  609. 'visible' => array(
+        ':input[name=vocabulary_target]' => array('value' => 'autocreate'),
+      )      
+        
+  627.  '#states' => array(
+        'visible' => array(
+          ':input[name=vocabulary_target]' => array('value' => 'autocreate'),
+        ),
+      ),   
+      
+      
+  675.    '#states'        => array(
+      'visible' => array(
+        ':input[name=vocabulary_target]' => array('value' => 'existing'),
+      ),
+    ),
+    
+    
+  663.  '#states'        => array(
+      'visible' => array(
+        ':input[name=import_format]' => array('value' => TAXONOMY_CSV_FORMAT_FIELDS),
+      ),
+    )
+    
+    
+    691. '#states'        => array(
+      'invisible' => array(
+        ':input[name=check_hierarchy]' => array('checked' => TRUE),
+       
+      ),
+    ),
+    
+    
+    418. '#states' => array(
+    
+    MISSING...
+    ),
+    
+    
+    430.   '#states'        => array(
+      'visible' => array(
+        ':input[name=import_delimiter]' => array('value' => 'custom_delimiter'),
+      ),
+    )
+    
+    
+    
+  449.    '#states'        => array(
+      'visible' => array(
+        ':input[name=import_enclosure]' => array('value' => 'custom_enclosure'),
+      ),
+    )
+    266.   '#states'        => array(
+      'visible' => array(
+        ':input[name=import_format]' => array('value' => TAXONOMY_CSV_FORMAT_FIELDS),
+      
+        ),
+    )
+    
+    
+    706.   '#states'      => array(
+      'visible' => array(
+        ':input[name=import_format]' => array('value' => TAXONOMY_CSV_FORMAT_STRUCTURE),
+        ':input[name=structure_type]' => array('value' => TAXONOMY_CSV_FORMAT_POLYHIERARCHY),
+      ),
+    )

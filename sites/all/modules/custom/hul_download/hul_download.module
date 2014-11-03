@@ -1,0 +1,110 @@
+<?php
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+function hul_download_menu() {
+    $items['download_csv/%'] = array(
+      'title' => '',
+      'description' => 'Download CSV',
+      'page callback' => 'csv_download',
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+    );
+    return $items;
+}
+
+function hul_download_views_pre_render(&$view) {
+    global $base_url;
+    if ($view->name == 'flipcart') {
+        $view->field['nothing']->options['alter']['text'] = '<a href= "#" class="download-csv">Download</a>';
+        drupal_add_js('sites/all/modules/custom/hul_download/hul_download.js');
+    }
+}
+
+function csv_download($delimiter = ",") {
+    $x = arg(1);
+    $string = str_replace(' ', '', $x);
+    $query = db_select('field_data_field_base_pack_code', 'fbpc');
+    $query->fields('fbpc', array('entity_id'));
+    $query->condition('field_base_pack_code_value', $x);
+    $result = $query->execute()->fetchField();
+    $nodedata = node_load($result);
+    $product = $nodedata->field_product_ref['und'];
+
+    $title = '';
+    $brand_name = '';
+    $price = '';
+    $long_desc = '';
+    $i = 0;
+    foreach ($product as $list) {
+        $product_load = commerce_product_load($list['product_id']);
+        $title .= $product_load->title;
+        $title .=',';
+        $price .= $product_load->commerce_price['und'][0]['amount'] / 100 . ' USD';
+        $price .= ',';
+        $brand = $product_load->field_product_brand['und'][0]['tid'];
+        $tid_query = db_select('taxonomy_term_data', 'td');
+        $tid_query->fields('td', array('name'));
+        $tid_query->condition('tid', $brand, '=');
+        $tid_result = $tid_query->execute()->fetchField();
+        $brand_name .= $tid_result;
+        $brand_name .= ',';
+        $long_query = db_select('field_data_field_long', 'fl');
+        $long_query->fields('fl', array('field_long_value'));
+        $long_query->condition('entity_id', $list['product_id'], '=');
+        $long_result = $long_query->execute()->fetchField();
+        $long_desc .= $long_result;
+        $long_desc .= ',';
+        $test[$i]['title'] = $product_load->title;
+        $test[$i]['price'] = $product_load->commerce_price['und'][0]['amount'] / 100 . ' USD';
+        $test[$i]['brand'] = $tid_result;
+        $test[$i]['long_desc'] = $long_result;
+        $test[$i]['image'] = '';
+        $i++;
+    }
+    $data = $test;
+    if (!is_dir('public://output')) {
+        mkdir("public://output", 0777);
+    }
+    else {
+        $filename = 'sites/default/files/output/' . $string . '.csv';
+        $file = fopen($filename, "w+");
+        fputcsv($file, array('Base Pack', 'Product Reference', 'Price', 'Long Description'));
+        foreach ($data as $fields) {
+            fputcsv($file, $fields);
+        }
+        fclose($file);
+    }
+
+    $j = 0;
+    $test_path = array();
+    foreach ($product as $img_list) {
+        $product_load1 = commerce_product_load($img_list['product_id']);
+        $img = $product_load1->field_desimg['und'];
+
+        $img_loac = array();
+        foreach ($img as $image_name) {
+            $img_loac[$j] = $image_name['filename'];
+            $test_path[] = "sites/default/files/" . $image_name['filename'];
+        }
+        $j++;
+    }
+    $zip = new ZipArchive();
+    $tmp_file = tempnam('.', '');
+    $zip->open($tmp_file, ZipArchive::CREATE);
+    $csv_path = 'sites/default/files/output/' . $string . '.csv';
+    $zip->addFile($csv_path, 'Product.csv');
+    foreach ($test_path as $file) {
+        $new_filename = "images/" . substr($file, strrpos($file, '/') + 1);
+
+        $zip->addFile($file, $new_filename);
+    }
+    $zip->close();
+    header('Content-disposition: attachment; filename=download.zip');
+    header('Content-type: application/zip');
+    readfile($tmp_file);
+}

@@ -1,0 +1,26 @@
+; $Id$
+name = Ecom Category
+description = Provides a really neat widget for your site's sidebar.
+package = 'custom'
+project ='ecom_category'
+version = '7.x-5.x-dev'
+files[] = ecom_category.install
+files[] = ecom_category.module
+files[] = ecom_category.api.inc
+files[] = ecom_category.vocabulary.api.inc
+files[] = ecom_category.term.api.inc
+files[] = ecom_category.result.inc
+files[] = import/ecom_category.import.admin.inc
+files[] = import/ecom_category.import.api.inc
+files[] = import/ecom_category.import.line.api.inc
+files[] = import/ecom_category.import.result.inc
+files[] = export/ecom_category.export.admin.inc
+files[] = export/ecom_category.export.api.inc
+files[] = export/ecom_category.export.result.inc
+
+; Information added by drupal.org packaging script on 2012-02-22
+version = "7.x-5.10"
+core = "7.x"
+project = "ecom_category"
+datestamp = "1329924048"
+

@@ -1,0 +1,83 @@
+<?php
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+function hul_category_block_form_alter(&$form, &$form_state, $form_id) {
+  if ((arg(0) == 'taxonomy') && (arg(1) == 'term') && (is_numeric(arg(2)))) {
+    // print($_GET['q']);
+    // if ($_GET['q'] == 'taxonomy/term/%') {
+    // dsm('hgi');
+    return TRUE;
+    // }
+  }
+}
+
+function hul_category_block_block_info() {
+//$blocks = array();
+  $blocks['category_summary'] = array(
+    'info' => t('Category Block'),
+  );
+  return $blocks;
+}
+
+function hul_category_block_block_view($delta = '') {
+
+  $block = array();
+  switch ($delta) {
+    case 'category_summary' :
+      $block['content'] = category_summary();
+      //$block['content'] = 'hello';
+      break;
+  }
+  return $block;
+}
+
+function category_summary() {
+  global $base_url;
+  $catid = arg(2);
+  if (empty($catid))
+    $term_id = getTermID('Baby Care');
+  else
+    $term_id = arg(2);
+
+  $name_res = db_select('taxonomy_term_data', 'ttd');
+  $name_res->fields('ttd');
+  $name_res->condition('ttd.tid', $term_id);
+  $name_result = $name_res->execute()->fetchAll();
+  $res = db_select('taxonomy_term_data', 'ttd');
+  $res->join('taxonomy_term_hierarchy', 'tth', 'ttd.tid = tth.tid');
+  $res->fields('ttd');
+  $res->fields('tth', array('tid'));
+  $res->condition('tth.parent', $term_id);
+  $result = $res->execute()->fetchAll();
+  $name = '';
+  if (!empty($result)) {
+    $child_tid = array();
+
+    foreach ($result as $child) {
+      $child_tid[$child->tid] = $child->name;
+      $name .= "<div class = 'category' ><ul><a href = '$base_url/catalog-product/$child->tid'> $child->name</a></ul>";
+      $subchild_tid = $child->tid;
+      $res1 = db_select('taxonomy_term_data', 'ttd');
+      $res1->join('taxonomy_term_hierarchy', 'tth', 'ttd.tid = tth.tid');
+      $res1->fields('ttd');
+      $res1->fields('tth', array('tid'));
+      $res1->condition('tth.parent', $subchild_tid);
+      $result1 = $res1->execute()->fetchAll();
+      if (!empty($result1)) {
+        $ct = '';
+        foreach ($result1 as $subchild) {
+          $subchildtid[$subchild->tid] = $subchild->name;
+          $name .= "<li><a href = '$base_url/catalog-product/$subchild->tid'>$subchild->name </a></li>";
+        }
+        $name .= "</div>";
+      }
+    }
+  }
+
+  return $name;
+}

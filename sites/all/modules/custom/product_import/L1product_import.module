@@ -1,0 +1,361 @@
+<?php
+
+global $product_count;
+
+function product_import_menu() {
+  $items = array();
+  $items['admin/Product Import'] = array(
+    'title' => 'Product Import',
+    'description' => 'Import/Export',
+    'position' => 'left',
+    'weight' => 2, // Less weight so that it will appear to the extreme left, before dashboard.
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+  );
+  $items['admin/Product Import/csv_import'] = array(
+    'title' => 'CSV import',
+    'description' => 'Import taxonomies, hierarchical structure or simple lists of terms and properties with CSV file or text.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wpc_import_form'),
+    'access arguments' => array('import taxonomy by csv'),
+    'weight' => 12,
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'import/wpc.import.admin.inc',
+  );
+  $items['admin/Product Import/csv_export'] = array(
+    'title' => 'CSV export',
+    'description' => 'Export terms and properties to a CSV file.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('wpc_export_form'),
+    'access arguments' => array('export taxonomy by csv'),
+    'weight' => 13,
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'export/wpc.export.admin.inc',
+  );
+  return $items;
+}
+
+function product_import_feeds_after_parse(FeedsSource $source, FeedsParserResult $result) {
+  //print_r($result);die;
+}
+
+function product_import_feeds_before_import(FeedsSource $source) {
+  
+}
+
+function product_import_feeds_after_clear(FeedsSource $source) {
+  
+}
+
+function product_import_feeds_presave(FeedsSource $source, $entity, $item) {
+  //print_r($fetcher_config = $source->getConfigFor($source->importer->fetcher));
+
+  if ($entity->feeds_item->id == 'test') {
+
+    $baspackCode = $item['basepack'];   //checking CSV line Countains Base Pack 
+    $cbu = $item['cbu']; // This is the SKU of Commerce Product
+    $product = commerce_product_load_by_sku($cbu);
+    if (empty($product))
+      $product = commerce_product_new('product');
+
+    if (!empty($baspackCode) && !empty($cbu)) {      // Checking CSV contains both Base Pack and CBU
+      $product->field_is_update['und'] = '1';
+      if (!empty($item['title']))
+        $product->title = $item['title'];
+      if (!empty($item['category'])) {   // Attach to E-com Category
+        $ecom_categoryid = getTermID($item['category']);
+        $product->field_ecom_category['und'][]['tid'] = $ecom_categoryid;
+      }
+      if (!empty($item['basepack'])) {  // Updating Base Pack Category ID
+        $product_tid = getTermID($item['basepack']);
+        $product->field_product_category['und'][0]['tid'] = $product_tid;
+      }
+      if (!empty($item['long']))
+        $product->field_long['und'][0]['value'] = $item['long'];
+      if (!empty($item['short']))
+        $product->field_short['und'][0]['value'] = $item['short'];
+      if (!empty($item['price'])) {
+        $product->commerce_price['und'][0] = array(
+          'amount' => $item['price'], // $10
+          'currency_code' => "RS",
+        );
+      }
+
+      if (!empty($item['image'])) {    // Multiple product image upload
+        $images = explode('|', $item['image']);
+        $imagescount = count($images);
+        if (!empty($images[0])) {
+          for ($index = 0; $index < $imagescount; $index++) {
+            $filepath = drupal_realpath($images[$index]);
+            $file = (object) array(
+                  'uid' => 1,
+                  'uri' => $filepath,
+                  'filemime' => file_get_mimetype($filepath),
+                  'status' => 1,
+            );
+            $file = file_copy($file, 'public://');
+            $product->field_desimg['und'][$index] = (array) $file;
+          }
+        }
+      }
+
+      commerce_product_save($product);
+      $entity->feeds_item->skip = TRUE;
+    }
+    elseif (!empty($baspackCode)) {   // Checking Given BasePack only
+      //$images = explode('|', $item['image']);
+      // print_r($images);die;
+      $termobj = taxonomy_get_term_by_name($baspackCode);  // Column 14 Base Pack Code ,Product will be attached to this code.
+      $key = (array_keys($termobj));
+      $key_value = $key[0];
+      $term_tid = $termobj[$key_value]->tid; //BasePack Term Id
+      $query = db_select('field_data_field_product_category', 'cat');
+      $query->join('commerce_product', 'p', 'cat.entity_id = p.product_id'); //JOIN node with Commerce Product table
+      $query->join('field_data_field_is_update', 'isupdate', 'p.product_id =isupdate.entity_id');
+      $query->fields('cat', array('entity_id')); //SELECT the fields from    field_data_field_product_category table
+      $query->fields('p', array('product_id', 'sku')); //SELECT the fields from Product
+      $query->fields('isupdate', array('field_is_update_value')); //SELECT the fields from Product
+      $query->condition('cat.field_product_category_tid', $term_tid);
+      $result = $query->execute();
+      $productSku = array();
+      while ($record = $result->fetchAssoc()) {
+        if ($record['field_is_update_value'] != 1) {
+          $productSku[] = $record['sku'];
+          $product_count = count($productSku);
+          $_SESSION['count'] = $product_count;
+          // print_r($record);
+        }
+      }
+      // print_r($productSku);die;
+
+
+
+
+      for ($i = 0; $i < $product_count; $i++) {   // Saving products belongs to Base Pack Code
+        $product = commerce_product_load_by_sku($productSku[$i]);
+        if (empty($product))
+          $product = commerce_product_new('product');
+        if (!empty($item['title']))
+          $product->title = $item['title'];
+        if (!empty($item['category'])) {
+          $ecom_categoryid = getTermID($item['category']);
+          $product->field_ecom_category['und'][]['tid'] = $ecom_categoryid;
+        }
+        if (!empty($item['basepack'])) {
+          $product_tid = getTermID($item['basepack']);
+          $product->field_product_category['und'][0]['tid'] = $product_tid;
+        }
+        if (!empty($item['long']))
+          $product->field_long['und'][0]['value'] = $item['long'];
+        if (!empty($item['short']))
+          $product->field_short['und'][0]['value'] = $item['short'];
+        if (!empty($item['price'])) {
+          $product->commerce_price['und'][0] = array(
+            'amount' => $item['price'], // $10
+            'currency_code' => "RS",
+          );
+        }
+        $product->field_is_update['und'] = '0';
+        if (!empty($item['image'])) {    // Multiple product image upload
+          $images = explode('|', $item['image']);
+          $imagescount = count($images);
+          if (!empty($images[0])) {
+            for ($index = 0; $index < $imagescount; $index++) {
+              $filepath = drupal_realpath($images[$index]);
+              $file = (object) array(
+                    'uid' => 1,
+                    'uri' => $filepath,
+                    'filemime' => file_get_mimetype($filepath),
+                    'status' => 1,
+              );
+              $file = file_copy($file, 'public://');
+              // print_r($file);die;
+              $product->field_desimg['und'][$index]['fid'] = $file->fid;
+            }
+          }
+        }
+
+        commerce_product_save($product);
+      }
+      $entity->feeds_item->skip = TRUE;
+    }
+  }
+  else if ($entity->feeds_item->id == 'banner_upload') {
+    
+  }
+  else if ($entity->feeds_item->id == 'promo_content'){
+    
+    $baspackCode = $item['basepack'];   //checking CSV line Countains Base Pack 
+    $cbu = $item['cbu']; // This is the SKU of Commerce Product
+    $product = commerce_product_load_by_sku($cbu);
+    if (empty($product))
+      $product = commerce_product_new('product');
+
+    if (!empty($baspackCode) && !empty($cbu)) {      // Checking CSV contains both Base Pack and CBU
+      $product->field_is_update['und'] = '1';
+      if (!empty($item['title']))
+        $product->title = $item['title'];
+      if (!empty($item['category'])) {   // Attach to E-com Category
+        $ecom_categoryid = getTermID($item['category']);
+        $product->field_ecom_category['und'][]['tid'] = $ecom_categoryid;
+      }
+      if (!empty($item['basepack'])) {  // Updating Base Pack Category ID
+        $product_tid = getTermID($item['basepack']);
+        $product->field_product_category['und'][0]['tid'] = $product_tid;
+      }
+      if (!empty($item['long']))
+        $product->field_long['und'][0]['value'] = $item['long'];
+      if (!empty($item['short']))
+        $product->field_short['und'][0]['value'] = $item['short'];
+    if (!empty($item['start']))
+     $start = explode(' ', $item['start']);
+     $product->field_promo_duration['und'][0]['value']['date'] = $start[0];
+     //$product->field_promo_duration['und'][0]['value']['time'] = $start[1];
+     if (!empty($item['end']))
+     $end = explode(' ', $item['end']);
+     $product->field_promo_duration['und'][0]['value2']['date'] = $end[0];
+     //$product->field_promo_duration['und'][0]['value2']['time'] = $end[1];
+      if (!empty($item['price'])) {
+        $product->commerce_price['und'][0] = array(
+          'amount' => $item['price'], // $10
+          'currency_code' => "RS",
+        );
+      }
+
+      if (!empty($item['image'])) {    // Multiple product image upload
+        $images = explode('|', $item['image']);
+        $imagescount = count($images);
+        if (!empty($images[0])) {
+          for ($index = 0; $index < $imagescount; $index++) {
+            $filepath = drupal_realpath($images[$index]);
+            $file = (object) array(
+                  'uid' => 1,
+                  'uri' => $filepath,
+                  'filemime' => file_get_mimetype($filepath),
+                  'status' => 1,
+            );
+            $file = file_copy($file, 'public://');
+            $product->field_desimg['und'][$index] = (array) $file;
+          }
+        }
+      }
+
+      commerce_product_save($product);
+      $entity->feeds_item->skip = TRUE;
+    }
+    elseif (!empty($baspackCode)) {   // Checking Given BasePack only
+      //$images = explode('|', $item['image']);
+      // print_r($images);die;
+      $termobj = taxonomy_get_term_by_name($baspackCode);  // Column 14 Base Pack Code ,Product will be attached to this code.
+      $key = (array_keys($termobj));
+      $key_value = $key[0];
+      $term_tid = $termobj[$key_value]->tid; //BasePack Term Id
+      $query = db_select('field_data_field_product_category', 'cat');
+      $query->join('commerce_product', 'p', 'cat.entity_id = p.product_id'); //JOIN node with Commerce Product table
+      $query->join('field_data_field_is_update', 'isupdate', 'p.product_id =isupdate.entity_id');
+      $query->fields('cat', array('entity_id')); //SELECT the fields from    field_data_field_product_category table
+      $query->fields('p', array('product_id', 'sku')); //SELECT the fields from Product
+      $query->fields('isupdate', array('field_is_update_value')); //SELECT the fields from Product
+      $query->condition('cat.field_product_category_tid', $term_tid);
+      $result = $query->execute();
+      $productSku = array();
+      while ($record = $result->fetchAssoc()) {
+        if ($record['field_is_update_value'] != 1) {
+          $productSku[] = $record['sku'];
+          $product_count = count($productSku);
+          $_SESSION['count'] = $product_count;
+          // print_r($record);
+        }
+      }
+      // print_r($productSku);die;
+
+      for ($i = 0; $i < $product_count; $i++) {   // Saving products belongs to Base Pack Code
+        $product = commerce_product_load_by_sku($productSku[$i]);
+        if (empty($product))
+          $product = commerce_product_new('product');
+        if (!empty($item['title']))
+          $product->title = $item['title'];
+        if (!empty($item['category'])) {
+          $ecom_categoryid = getTermID($item['category']);
+          $product->field_ecom_category['und'][]['tid'] = $ecom_categoryid;
+        }
+        if (!empty($item['basepack'])) {
+          $product_tid = getTermID($item['basepack']);
+          $product->field_product_category['und'][0]['tid'] = $product_tid;
+        }
+        if (!empty($item['long']))
+          $product->field_long['und'][0]['value'] = $item['long'];
+        if (!empty($item['short']))
+          $product->field_short['und'][0]['value'] = $item['short'];
+        if (!empty($item['start']))
+     $start = explode(' ', $item['start']);
+     $product->field_promo_duration['und'][0]['value']['date'] = $start[0];
+     $product->field_promo_duration['und'][0]['value']['time'] = $start[1];
+     if (!empty($item['end']))
+     $end = explode(' ', $item['end']);
+     $product->field_promo_duration['und'][0]['value2']['date'] = $end[0];
+     $product->field_promo_duration['und'][0]['value2']['time'] = $end[1];
+        if (!empty($item['price'])) {
+          $product->commerce_price['und'][0] = array(
+            'amount' => $item['price'], // $10
+            'currency_code' => "RS",
+          );
+        }
+        $product->field_is_update['und'] = '0';
+        if (!empty($item['image'])) {    // Multiple product image upload
+          $images = explode('|', $item['image']);
+          $imagescount = count($images);
+          if (!empty($images[0])) {
+            for ($index = 0; $index < $imagescount; $index++) {
+              $filepath = drupal_realpath($images[$index]);
+              $file = (object) array(
+                    'uid' => 1,
+                    'uri' => $filepath,
+                    'filemime' => file_get_mimetype($filepath),
+                    'status' => 1,
+              );
+              $file = file_copy($file, 'public://');
+              // print_r($file);die;
+              $product->field_desimg['und'][$index]['fid'] = $file->fid;
+            }
+          }
+        }
+
+        commerce_product_save($product);
+      }
+      $entity->feeds_item->skip = TRUE;
+    }
+  }
+    /*$cbu = $item['cbu']; // This is the SKU of Commerce Product
+    if (!empty($cbu)) {
+     if (!empty($item['start']))
+     $start = explode(' ', $item['start']);
+     $product->field_promo_duration['und'][0]['value']['date'] = $start[0];
+     $product->field_promo_duration['und'][0]['value']['time'] = $start[1];
+     if (!empty($item['end']))
+     $end = explode(' ', $item['end']);
+     $product->field_promo_duration['und'][0]['value2']['date'] = $end[0];
+     $product->field_promo_duration['und'][0]['value2']['time'] = $end[1];
+     
+    }*/
+
+}
+
+function product_import_feeds_after_import(FeedsSource $source) {
+  $a = $_SESSION['count'];
+  drupal_set_message("Import Completed for " . $a . " products");
+}
+
+function getTermID($term_name) {
+  if (isset($term_name)) {
+    $termobj = taxonomy_get_term_by_name($term_name);  // Column 14 Base Pack Code ,Product will be attached to this code.
+    $key = (array_keys($termobj));
+    $key_value = $key[0];
+    return $termobj[$key_value]->tid; //BasePack Term Id
+  }
+  else {
+    return 0;
+  }
+}

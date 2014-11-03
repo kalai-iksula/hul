@@ -1,0 +1,8 @@
+name = "Product Import"
+description = "Export and Import Product ."
+core = 7.x
+package = 'custom'
+version = "7.x-5.10"
+core = "7.x"
+datestamp = "1329924048"
+

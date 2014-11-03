@@ -1,0 +1,8 @@
+name = "Block For Vocabulary Category"
+description = "Block For Vocabulary Category"
+core = 7.x
+package = 'custom'
+version = "7.x-5.10"
+core = "7.x"
+datestamp = "1329924048"
+
